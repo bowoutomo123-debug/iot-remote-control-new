@@ -1,0 +1,175 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IoT Remote Control</title>
+
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #101827;
+      color: white;
+      text-align: center;
+      padding: 25px;
+    }
+
+    h1 { color: #38bdf8; }
+
+    .status {
+      padding: 12px;
+      background: #243247;
+      border-radius: 10px;
+      margin: 15px auto;
+      max-width: 450px;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      max-width: 750px;
+      margin: auto;
+    }
+
+    .card {
+      background: #243247;
+      padding: 20px;
+      border-radius: 15px;
+    }
+
+    button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      margin: 5px;
+      cursor: pointer;
+      color: white;
+      font-weight: bold;
+    }
+
+    .on { background: #16a34a; }
+    .off { background: #dc2626; }
+    .all { background: #2563eb; }
+
+    .indicator {
+      font-size: 18px;
+      margin: 12px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>IoT REMOTE CONTROL</h1>
+  <p>Website Pengendali Lampu dan Alarm ESP32</p>
+
+  <div class="status">
+    Status MQTT: <strong id="connection">Menghubungkan...</strong>
+  </div>
+
+  <div class="container">
+
+    <div class="card">
+      <h2>🔴 LED Merah</h2>
+      <p id="redStatus">OFF</p>
+      <button class="on" onclick="sendCommand('RED_ON')">ON</button>
+      <button class="off" onclick="sendCommand('RED_OFF')">OFF</button>
+    </div>
+
+    <div class="card">
+      <h2>🟡 LED Kuning</h2>
+      <p id="yellowStatus">OFF</p>
+      <button class="on" onclick="sendCommand('YELLOW_ON')">ON</button>
+      <button class="off" onclick="sendCommand('YELLOW_OFF')">OFF</button>
+    </div>
+
+    <div class="card">
+      <h2>🟢 LED Hijau</h2>
+      <p id="greenStatus">OFF</p>
+      <button class="on" onclick="sendCommand('GREEN_ON')">ON</button>
+      <button class="off" onclick="sendCommand('GREEN_OFF')">OFF</button>
+    </div>
+
+    <div class="card">
+      <h2>🔔 BUZZER</h2>
+      <p id="buzzerStatus">OFF</p>
+      <button class="on" onclick="sendCommand('BUZZER_ON')">ON</button>
+      <button class="off" onclick="sendCommand('BUZZER_OFF')">OFF</button>
+    </div>
+
+  </div>
+
+  <br>
+  <button class="all" onclick="sendCommand('ALL_OFF')">
+    MATIKAN SEMUA
+  </button>
+
+  <h3>Monitoring ESP32</h3>
+  <div class="status">
+    <p id="deviceStatus">Menunggu data dari ESP32...</p>
+  </div>
+
+<script>
+  const controlTopic = "iot_remote_demo_2026_7f3a/control";
+  const statusTopic = "iot_remote_demo_2026_7f3a/status";
+
+  // Koneksi MQTT melalui WebSocket
+  const client = mqtt.connect(
+    "wss://broker.hivemq.com:8884/mqtt"
+  );
+
+  client.on("connect", function() {
+    document.getElementById("connection").innerText =
+      "TERHUBUNG";
+
+    client.subscribe(statusTopic);
+  });
+
+  client.on("offline", function() {
+    document.getElementById("connection").innerText =
+      "OFFLINE";
+  });
+
+  client.on("error", function(error) {
+    console.log("MQTT Error:", error);
+  });
+
+  // Mengirim perintah ke ESP32
+  function sendCommand(command) {
+    if (!client.connected) {
+      alert("MQTT belum terhubung!");
+      return;
+    }
+
+    client.publish(controlTopic, command);
+  }
+
+  // Menerima status dari ESP32
+  client.on("message", function(topic, message) {
+    if (topic === statusTopic) {
+      const data = JSON.parse(message.toString());
+
+      document.getElementById("redStatus").innerText =
+        data.red ? "ON" : "OFF";
+
+      document.getElementById("yellowStatus").innerText =
+        data.yellow ? "ON" : "OFF";
+
+      document.getElementById("greenStatus").innerText =
+        data.green ? "ON" : "OFF";
+
+      document.getElementById("buzzerStatus").innerText =
+        data.buzzer ? "ON" : "OFF";
+
+      document.getElementById("deviceStatus").innerText =
+        "Data ESP32 berhasil diterima";
+    }
+  });
+</script>
+
+</body>
+</html>
